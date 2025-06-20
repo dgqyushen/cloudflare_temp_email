@@ -12,6 +12,7 @@ from twisted.cred.checkers import ICredentialsChecker, IUsernamePassword
 from config import settings
 from parse_email import generate_email_model, parse_email
 from models import EmailModel
+from email.header import Header
 
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
@@ -28,12 +29,20 @@ class SimpleMessage:
     def getUID(self):
         return self.uid
 
+    # def getHeaders(self, negate, *names):
+    #     self.got_headers = negate, names
+    #     return {
+    #         k.lower(): v
+    #         for k, v in self.email.headers.items()
+    #     }
+    
     def getHeaders(self, negate, *names):
         self.got_headers = negate, names
         return {
-            k.lower(): v
+            k.lower(): str(Header(v, 'utf-8')) if not isinstance(v, bytes) else v
             for k, v in self.email.headers.items()
         }
+
 
     def isMultipart(self):
         return len(self.subparts) > 0
