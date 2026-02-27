@@ -3,11 +3,12 @@ import { watch, onMounted, ref, onBeforeUnmount, computed } from "vue";
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useGlobalState } from '../store'
-import { CloudDownloadRound, ArrowBackIosNewFilled, ArrowForwardIosFilled } from '@vicons/material'
+import { CloudDownloadRound, ArrowBackIosNewFilled, ArrowForwardIosFilled, InboxRound } from '@vicons/material'
 import { useIsMobile } from '../utils/composables'
 import { processItem } from '../utils/email-parser'
 import { utcToLocalDate } from '../utils';
 import MailContentRenderer from "./MailContentRenderer.vue";
+import AiExtractInfo from "./AiExtractInfo.vue";
 
 const message = useMessage()
 const isMobile = useIsMobile()
@@ -48,19 +49,43 @@ const props = defineProps({
     default: (mail_id, filename, blob) => { },
     required: false
   },
+  showFilterInput: {
+    type: Boolean,
+    default: false,
+    required: false
+  },
 })
+
+const localFilterKeyword = ref('')
 
 const {
   isDark, mailboxSplitSize, indexTab, loading, useUTCDate,
   autoRefresh, configAutoRefreshInterval, sendMailModel
 } = useGlobalState()
 const autoRefreshInterval = ref(configAutoRefreshInterval.value)
-const data = ref([])
+const rawData = ref([])
 const timer = ref(null)
 
 const count = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
+
+// Computed property for filtered data (only filter current page)
+const data = computed(() => {
+  if (!localFilterKeyword.value || localFilterKeyword.value.trim() === '') {
+    return rawData.value;
+  }
+  const keyword = localFilterKeyword.value.toLowerCase();
+  return rawData.value.filter(mail => {
+    // Search in subject, text, message fields
+    const searchFields = [
+      mail.subject || '',
+      mail.text || '',
+      mail.message || ''
+    ].map(field => field.toLowerCase());
+    return searchFields.some(field => field.includes(keyword));
+  });
+})
 
 const canGoPrevMail = computed(() => {
   if (!curMail.value) return false
@@ -122,6 +147,7 @@ const { t } = useI18n({
       attachments: 'Show Attachments',
       downloadMail: 'Download Mail',
       pleaseSelectMail: "Please select mail",
+      emptyInbox: "Your inbox is empty",
       delete: 'Delete',
       deleteMailTip: 'Are you sure you want to delete mail?',
       reply: 'Reply',
@@ -135,6 +161,8 @@ const { t } = useI18n({
       unselectAll: 'Unselect All',
       prevMail: 'Previous',
       nextMail: 'Next',
+      keywordQueryTip: 'Filter current page',
+      query: 'Query',
     },
     zh: {
       success: '成功',
@@ -144,6 +172,7 @@ const { t } = useI18n({
       downloadMail: '下载邮件',
       attachments: '查看附件',
       pleaseSelectMail: "请选择邮件",
+      emptyInbox: "收件箱为空",
       delete: '删除',
       deleteMailTip: '确定要删除邮件吗?',
       reply: '回复',
@@ -157,6 +186,8 @@ const { t } = useI18n({
       unselectAll: '取消全选',
       prevMail: '上一封',
       nextMail: '下一封',
+      keywordQueryTip: '过滤当前页',
+      query: '查询',
     }
   }
 });
@@ -196,7 +227,7 @@ const refresh = async () => {
       pageSize.value, (page.value - 1) * pageSize.value
     );
     loading.value = true;
-    data.value = await Promise.all(results.map(async (item) => {
+    rawData.value = await Promise.all(results.map(async (item) => {
       item.checked = false;
       return await processItem(item);
     }));
@@ -369,7 +400,7 @@ onBeforeUnmount(() => {
   <div>
     <div v-if="!isMobile" class="left">
       <div style="margin-bottom: 10px;">
-        <n-space v-if="multiActionMode">
+        <n-space v-if="multiActionMode" align="center">
           <n-button @click="multiActionModeClick(false)" tertiary>
             {{ t('cancelMultiAction') }}
           </n-button>
@@ -392,7 +423,7 @@ onBeforeUnmount(() => {
             {{ t('downloadMail') }}
           </n-button>
         </n-space>
-        <n-space v-else>
+        <n-space v-else align="center">
           <n-button @click="multiActionModeClick(true)" type="primary" tertiary>
             {{ t('multiAction') }}
           </n-button>
@@ -409,12 +440,15 @@ onBeforeUnmount(() => {
           <n-button @click="backFirstPageAndRefresh" type="primary" tertiary>
             {{ t('refresh') }}
           </n-button>
+          <n-input v-if="showFilterInput" v-model:value="localFilterKeyword"
+            :placeholder="t('keywordQueryTip')" style="width: 200px; display: flex; align-items: center;"
+            clearable />
         </n-space>
       </div>
       <n-split class="left" direction="horizontal" :max="0.75" :min="0.25" :default-size="mailboxSplitSize"
         :on-update:size="onSpiltSizeChange">
         <template #1>
-          <div style="overflow: auto; min-height: 50vh; max-height: 100vh;">
+          <div style="overflow: auto; min-height: 60vh; max-height: 100vh;">
             <n-list hoverable clickable>
               <n-list-item v-for="row in data" v-bind:key="row.id" @click="() => clickRow(row)"
                 :class="mailItemClass(row)">
@@ -439,6 +473,7 @@ onBeforeUnmount(() => {
                         TO: {{ row.address }}
                       </n-ellipsis>
                     </n-tag>
+                    <AiExtractInfo :metadata="row.metadata" compact />
                   </template>
                 </n-thing>
               </n-list-item>
@@ -473,17 +508,18 @@ onBeforeUnmount(() => {
               :onDelete="deleteMail" :onReply="replyMail" :onForward="forwardMail" :onSaveToS3="saveToS3Proxy" />
           </n-card>
           <n-card :bordered="false" embedded class="mail-item" v-else>
-            <n-result status="info" :title="t('pleaseSelectMail')">
+            <n-result status="info" :title="count === 0 ? t('emptyInbox') : t('pleaseSelectMail')">
+              <template #icon>
+                <n-icon :component="InboxRound" :size="100" />
+              </template>
             </n-result>
           </n-card>
         </template>
       </n-split>
     </div>
     <div class="left" v-else>
-      <n-space justify="center">
-        <div style="display: inline-block;">
-          <n-pagination v-model:page="page" v-model:page-size="pageSize" :item-count="count" simple size="small" />
-        </div>
+      <n-space justify="space-around" align="center" :wrap="false" style="display: flex; align-items: center;">
+        <n-pagination v-model:page="page" v-model:page-size="pageSize" :item-count="count" simple size="small" />
         <n-switch v-model:value="autoRefresh" size="small" :round="false">
           <template #checked>
             {{ t('refreshAfter', { msg: autoRefreshInterval }) }}
@@ -496,7 +532,11 @@ onBeforeUnmount(() => {
           {{ t('refresh') }}
         </n-button>
       </n-space>
-      <div style="overflow: auto; height: 80vh;">
+      <div v-if="showFilterInput" style="padding: 0 10px; margin-top: 8px; margin-bottom: 10px;">
+        <n-input v-model:value="localFilterKeyword"
+          :placeholder="t('keywordQueryTip')" size="small" clearable />
+      </div>
+      <div style="overflow: auto; min-height: 60vh; max-height: 100vh;">
         <n-list hoverable clickable>
           <n-list-item v-for="row in data" v-bind:key="row.id" @click="() => clickRow(row)">
             <n-thing :title="row.subject">
@@ -508,11 +548,16 @@ onBeforeUnmount(() => {
                   {{ utcToLocalDate(row.created_at, useUTCDate) }}
                 </n-tag>
                 <n-tag type="info">
-                  {{ showEMailTo ? "FROM: " + row.source : row.source }}
+                  <n-ellipsis style="max-width: 240px;">
+                    {{ showEMailTo ? "FROM: " + row.source : row.source }}
+                  </n-ellipsis>
                 </n-tag>
                 <n-tag v-if="showEMailTo" type="info">
-                  TO: {{ row.address }}
+                  <n-ellipsis style="max-width: 240px;">
+                    TO: {{ row.address }}
+                  </n-ellipsis>
                 </n-tag>
+                <AiExtractInfo :metadata="row.metadata" compact />
               </template>
             </n-thing>
           </n-list-item>

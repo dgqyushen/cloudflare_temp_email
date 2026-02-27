@@ -1,9 +1,11 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 
 import { useGlobalState } from '../store'
 import { api } from '../api'
+import { getRouterPathWithLang } from '../utils'
 
 import SenderAccess from './admin/SenderAccess.vue'
 import Statistics from "./admin/Statistics.vue"
@@ -14,6 +16,7 @@ import AccountSettings from './admin/AccountSettings.vue';
 import UserManagement from './admin/UserManagement.vue';
 import UserSettings from './admin/UserSettings.vue';
 import UserOauth2Settings from './admin/UserOauth2Settings.vue';
+import RoleAddressConfig from './admin/RoleAddressConfig.vue';
 import Mails from './admin/Mails.vue';
 import MailsUnknow from './admin/MailsUnknow.vue';
 import About from './common/About.vue';
@@ -24,12 +27,16 @@ import Telegram from './admin/Telegram.vue';
 import Webhook from './admin/Webhook.vue';
 import MailWebhook from './admin/MailWebhook.vue';
 import WorkerConfig from './admin/WorkerConfig.vue';
+import IpBlacklistSettings from './admin/IpBlacklistSettings.vue';
+import AiExtractSettings from './admin/AiExtractSettings.vue';
 
 const {
   adminAuth, showAdminAuth, adminTab, loading,
-  globalTabplacement, showAdminPage, userSettings
+  globalTabplacement, showAdminPage, userSettings,
+  openSettings
 } = useGlobalState()
 const message = useMessage()
+const router = useRouter()
 
 const SendMail = defineAsyncComponent(() => {
   loading.value = true;
@@ -46,7 +53,20 @@ const authFunc = async () => {
   }
 }
 
-const { t } = useI18n({
+const showLogoutModal = ref(false)
+
+const handleLogout = async () => {
+  // 清空管理员认证
+  adminAuth.value = '';
+  // 重置管理员相关状态
+  showAdminAuth.value = false;
+  adminTab.value = 'account';
+  // 显示成功提示并跳转
+  message.success(t('logoutSuccess'));
+  await router.push(getRouterPathWithLang('/', locale.value));
+}
+
+const { t, locale } = useI18n({
   messages: {
     en: {
       accessHeader: 'Admin Password',
@@ -61,6 +81,7 @@ const { t } = useI18n({
       user_management: 'User Management',
       user_settings: 'User Settings',
       userOauth2Settings: 'Oauth2 Settings',
+      roleAddressConfig: 'Role Address Config',
       unknow: 'Mails with unknow receiver',
       senderAccess: 'Sender Access Control',
       sendBox: 'Send Box',
@@ -70,10 +91,22 @@ const { t } = useI18n({
       maintenance: 'Maintenance',
       database: 'Database',
       workerconfig: 'Worker Config',
+      ipBlacklistSettings: 'IP Blacklist',
+      aiExtractSettings: 'AI Extract Settings',
       appearance: 'Appearance',
       about: 'About',
       ok: 'OK',
       mailWebhook: 'Mail Webhook',
+      adminAccount: 'Admin',
+      loginMethod: 'Login Method',
+      loginViaPassword: 'Admin Password Login',
+      loginViaUserAdmin: 'User Admin Permission',
+      loginViaDisabledCheck: 'Disabled Password Check',
+      logout: 'Logout',
+      logoutConfirmTitle: 'Confirm Logout',
+      logoutConfirmContent: 'Are you sure you want to logout from admin panel?',
+      confirm: 'Confirm',
+      logoutSuccess: 'Logout successful',
     },
     zh: {
       accessHeader: 'Admin 密码',
@@ -88,6 +121,7 @@ const { t } = useI18n({
       user_management: '用户管理',
       user_settings: '用户设置',
       userOauth2Settings: 'Oauth2 设置',
+      roleAddressConfig: '角色地址配置',
       unknow: '无收件人邮件',
       senderAccess: '发件权限控制',
       sendBox: '发件箱',
@@ -97,16 +131,42 @@ const { t } = useI18n({
       maintenance: '维护',
       database: '数据库',
       workerconfig: 'Worker 配置',
+      ipBlacklistSettings: 'IP 黑名单',
+      aiExtractSettings: 'AI 提取设置',
       appearance: '外观',
       about: '关于',
       ok: '确定',
       mailWebhook: '邮件 Webhook',
+      adminAccount: '管理员',
+      loginMethod: '登录方式',
+      loginViaPassword: 'Admin 密码登录',
+      loginViaUserAdmin: '用户管理员权限',
+      loginViaDisabledCheck: '已禁用密码检查',
+      logout: '退出登录',
+      logoutConfirmTitle: '确认退出',
+      logoutConfirmContent: '确定要退出管理员面板吗？',
+      confirm: '确认',
+      logoutSuccess: '退出成功',
     }
   }
 });
 
 const showAdminPasswordModal = computed(() => !showAdminPage.value || showAdminAuth.value)
 const tmpAdminAuth = ref('')
+// 判断是否通过 admin password 登录（而非用户管理员权限）
+const isAdminPasswordLogin = computed(() => !!adminAuth.value)
+
+// 获取当前登录方式
+const currentLoginMethod = computed(() => {
+  if (adminAuth.value) {
+    return t('loginViaPassword');
+  } else if (userSettings.value.is_admin) {
+    return t('loginViaUserAdmin');
+  } else if (openSettings.value.disableAdminPasswordCheck) {
+    return t('loginViaDisabledCheck');
+  }
+  return '';
+})
 
 onMounted(async () => {
   // make sure user_id is fetched
@@ -157,6 +217,12 @@ onMounted(async () => {
           <n-tab-pane name="senderAccess" :tab="t('senderAccess')">
             <SenderAccess />
           </n-tab-pane>
+          <n-tab-pane name="ipBlacklistSettings" :tab="t('ipBlacklistSettings')">
+            <IpBlacklistSettings />
+          </n-tab-pane>
+          <n-tab-pane name="aiExtractSettings" :tab="t('aiExtractSettings')">
+            <AiExtractSettings />
+          </n-tab-pane>
           <n-tab-pane name="webhook" :tab="t('webhookSettings')">
             <Webhook />
           </n-tab-pane>
@@ -172,6 +238,9 @@ onMounted(async () => {
           </n-tab-pane>
           <n-tab-pane name="userOauth2Settings" :tab="t('userOauth2Settings')">
             <UserOauth2Settings />
+          </n-tab-pane>
+          <n-tab-pane name="roleAddressConfig" :tab="t('roleAddressConfig')">
+            <RoleAddressConfig />
           </n-tab-pane>
         </n-tabs>
       </n-tab-pane>
@@ -216,10 +285,32 @@ onMounted(async () => {
       <n-tab-pane name="appearance" :tab="t('appearance')">
         <Appearance />
       </n-tab-pane>
+      <n-tab-pane name="adminAccount" :tab="t('adminAccount')">
+        <div style="display: flex; justify-content: center; padding: 20px;">
+          <n-card style="width: 600px;">
+            <n-space vertical>
+              <n-text strong>{{ t('loginMethod') }}</n-text>
+              <n-text>{{ currentLoginMethod }}</n-text>
+              <n-divider v-if="isAdminPasswordLogin" />
+              <n-button v-if="isAdminPasswordLogin" type="warning" @click="showLogoutModal = true" block>
+                {{ t('logout') }}
+              </n-button>
+            </n-space>
+          </n-card>
+        </div>
+      </n-tab-pane>
       <n-tab-pane name="about" :tab="t('about')">
         <About />
       </n-tab-pane>
     </n-tabs>
+    <n-modal v-model:show="showLogoutModal" preset="dialog" :title="t('logoutConfirmTitle')">
+      <p>{{ t('logoutConfirmContent') }}</p>
+      <template #action>
+        <n-button :loading="loading" @click="handleLogout" size="small" tertiary type="warning">
+          {{ t('confirm') }}
+        </n-button>
+      </template>
+    </n-modal>
   </div>
 </template>
 

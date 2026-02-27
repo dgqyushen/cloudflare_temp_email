@@ -3,7 +3,12 @@ import { defineConfig, type DefaultTheme } from 'vitepress'
 export const zh = defineConfig({
     title: "临时邮箱文档",
     lang: 'zh-Hans',
-    description: 'CloudFlare 免费收发 临时域名邮箱',
+    description: 'CloudFlare 免费收发临时域名邮箱，支持多域名、附件、Telegram Bot、Webhook、SMTP/IMAP',
+
+    head: [
+        ['meta', { property: 'og:locale', content: 'zh_CN' }],
+        ['meta', { property: 'og:description', content: 'CloudFlare 免费收发临时域名邮箱，支持多域名、附件、Telegram Bot、Webhook、SMTP/IMAP' }],
+    ],
 
     themeConfig: {
         nav: nav(),
@@ -53,7 +58,7 @@ function nav(): DefaultTheme.NavItem[] {
     return [
         {
             text: '主页',
-            link: '/',
+            link: '/zh/',
         },
         {
             text: '指南',
@@ -62,11 +67,11 @@ function nav(): DefaultTheme.NavItem[] {
         },
         {
             text: '服务状态',
-            link: '/status',
+            link: '/zh/status',
         },
         {
             text: '参考',
-            link: '/reference',
+            link: '/zh/reference',
         },
         {
             text: process.env.TAG_NAME || 'v0.2.2',
@@ -142,6 +147,7 @@ function sidebarGuide(): DefaultTheme.SidebarItem[] {
             text: '附加功能',
             collapsed: false,
             items: [
+                { text: 'AI 邮件识别', link: 'feature/ai-extract' },
                 { text: '配置 SMTP IMAP 代理服务', link: 'feature/config-smtp-proxy' },
                 { text: '发送邮件 API', link: 'feature/send-mail-api' },
                 { text: '查看邮件 API', link: 'feature/mail-api' },
@@ -164,6 +170,6 @@ function sidebarGuide(): DefaultTheme.SidebarItem[] {
                 { text: 'Admin 用户管理', link: 'feature/admin-user-management' },
             ]
         },
-        { text: '参考', base: "/", link: 'reference' }
+        { text: '参考', base: "/zh/", link: 'reference' }
     ]
 }

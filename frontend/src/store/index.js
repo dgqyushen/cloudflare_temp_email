@@ -34,8 +34,10 @@ export const useGlobalState = createGlobalState(
             cfTurnstileSiteKey: '',
             enableWebhook: false,
             isS3Enabled: false,
+            enableSendMail: false,
             showGithub: true,
             disableAdminPasswordCheck: false,
+            enableAddressPassword: false,
         })
         const settings = ref({
             fetched: false,
@@ -63,6 +65,7 @@ export const useGlobalState = createGlobalState(
         const auth = useStorage('auth', '');
         const adminAuth = useStorage('adminAuth', '');
         const jwt = useStorage('jwt', '');
+        const addressPassword = useSessionStorage('addressPassword', '');
         const adminTab = useSessionStorage('adminTab', "account");
         const adminMailTabAddress = ref("");
         const adminSendBoxTabAddress = ref("");
@@ -81,7 +84,7 @@ export const useGlobalState = createGlobalState(
             fetched: false,
             enable: false,
             enableMailVerify: false,
-            /** @type {{ clientID: string, name: string }[]} */
+            /** @type {{ clientID: string, name: string, icon?: string }[]} */
             oauth2ClientIDs: [],
         });
         const userSettings = ref({
@@ -109,6 +112,7 @@ export const useGlobalState = createGlobalState(
         const isTelegram = ref(!!window.Telegram?.WebApp?.initData);
         const userOauth2SessionState = useSessionStorage('userOauth2SessionState', '');
         const userOauth2SessionClientID = useSessionStorage('userOauth2SessionClientID', '');
+        const browserFingerprint = ref('');
         return {
             isDark,
             toggleDark,
@@ -145,6 +149,8 @@ export const useGlobalState = createGlobalState(
             userOauth2SessionState,
             userOauth2SessionClientID,
             useSimpleIndex,
+            addressPassword,
+            browserFingerprint,
         }
     },
 )

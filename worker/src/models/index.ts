@@ -34,6 +34,13 @@ export type WebhookMail = {
     parsedHtml: string;
 }
 
+export type CustomSqlCleanup = {
+    id: string;           // Unique identifier
+    name: string;         // Cleanup task name
+    sql: string;          // Custom SQL statement (DELETE only)
+    enabled: boolean;     // Whether to enable auto cleanup
+}
+
 export type CleanupSettings = {
 
     enableMailsAutoCleanup: boolean | undefined;
@@ -46,6 +53,11 @@ export type CleanupSettings = {
     cleanAddressDays: number;
     enableInactiveAddressAutoCleanup: boolean | undefined;
     cleanInactiveAddressDays: number;
+    enableUnboundAddressAutoCleanup: boolean | undefined;
+    cleanUnboundAddressDays: number;
+    enableEmptyAddressAutoCleanup: boolean | undefined;
+    cleanEmptyAddressDays: number;
+    customSqlCleanupList: CustomSqlCleanup[] | undefined;
 }
 
 export class GeoData {
@@ -87,11 +99,14 @@ export class UserSettings {
     enableMailAllowList: boolean | undefined;
     mailAllowList: string[] | undefined;
     maxAddressCount: number;
+    enableEmailCheckRegex: boolean | undefined;
+    emailCheckRegex: string | undefined;
 
     constructor(data: UserSettings | undefined | null) {
         const {
             enable, enableMailVerify, verifyMailSender,
-            enableMailAllowList, mailAllowList, maxAddressCount
+            enableMailAllowList, mailAllowList, maxAddressCount,
+            enableEmailCheckRegex, emailCheckRegex
         } = data || {};
         this.enable = enable;
         this.enableMailVerify = enableMailVerify;
@@ -99,6 +114,8 @@ export class UserSettings {
         this.enableMailAllowList = enableMailAllowList;
         this.mailAllowList = mailAllowList;
         this.maxAddressCount = maxAddressCount || 5;
+        this.enableEmailCheckRegex = enableEmailCheckRegex;
+        this.emailCheckRegex = emailCheckRegex;
     }
 }
 
@@ -134,6 +151,7 @@ export class WebhookSettings {
 
 export type UserOauth2Settings = {
     name: string;
+    icon?: string;                // SVG icon string for the provider
     clientID: string;
     clientSecret: string;
     authorizationURL: string;
@@ -143,6 +161,9 @@ export type UserOauth2Settings = {
     redirectURL: string;
     logoutURL?: string;
     userEmailKey: string;
+    enableEmailFormat?: boolean;  // Enable email format transformation
+    userEmailFormat?: string;     // Regex pattern to match email
+    userEmailReplace?: string;    // Replacement template using $1, $2, etc.
     scope: string;
     enableMailAllowList?: boolean | undefined;
     mailAllowList?: string[] | undefined;
@@ -152,3 +173,10 @@ export type EmailRuleSettings = {
     blockReceiveUnknowAddressEmail: boolean;
     emailForwardingList: SubdomainForwardAddressList[]
 }
+
+export type RoleConfig = {
+    maxAddressCount?: number;
+    // future configs can be added here
+}
+
+export type RoleAddressConfig = Record<string, RoleConfig>;

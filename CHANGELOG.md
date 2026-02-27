@@ -1,9 +1,99 @@
-<!-- markdownlint-disable-file MD004 MD024 MD034 MD036 -->
+<!-- markdownlint-disable-file MD004 MD024 MD033 MD034 MD036 -->
 # CHANGE LOG
 
-## main(v1.0.6)
+<p align="center">
+  <a href="CHANGELOG.md">🇨🇳 中文</a> |
+  <a href="CHANGELOG_EN.md">🇺🇸 English</a>
+</p>
+
+## v1.4.0(main)
+
+### Features
+
+- feat: |用户注册| 新增用户注册邮箱正则校验功能，管理员可配置邮箱格式验证规则
+
+### Bug Fixes
+
+- fix: |文档| 修复 User Mail API 文档中错误使用 `x-admin-auth` 的问题，改为正确的 `x-user-token`
+- docs: |文档| 新增 Admin 删除邮件、删除邮箱地址、清空收件箱、清空发件箱 API 文档
+
+### Improvements
+
+- style: |邮件列表| 优化收件箱和发件箱空状态显示，根据邮件数量显示不同提示信息，添加语义化图标
+- feat: |后台管理| 邮箱地址列表来源IP添加 ip.im 查询链接，点击可快速查看IP信息
+- docs: |文档| 修复 VitePress 中英文切换路径错误，改用双前缀 locale 配置
+
+## v1.3.0
+
+### Features
+
+- feat: |OAuth2| 新增 OAuth2 邮箱格式转换功能，支持通过正则表达式转换第三方登录返回的邮箱格式（如将 `user@domain` 转换为 `user@custom.domain`）
+- feat: |OAuth2| 新增 OAuth2 提供商 SVG 图标支持，管理员可为登录按钮配置自定义图标，预置 GitHub、Linux Do、Authentik 模板图标
+- feat: |发送邮件| 未配置发送邮件功能时自动隐藏发送邮件 tab、发件箱 tab 和回复按钮
+
+### Bug Fixes
+
+- fix: |用户地址| 修复禁止匿名创建时，已登录用户地址数量限制检查失效的问题，新增公共函数 `isAddressCountLimitReached` 统一处理地址数量限制逻辑
+
+### Improvements
+
+- refactor: |代码重构| 提取地址数量限制检查为公共函数，优化代码复用性
+- perf: |性能优化| GET 请求中的地址活动时间更新改为异步执行，使用 `waitUntil` 不阻塞响应
+
+## v1.2.1
+
+### Bug Fixes
+
+- fix: |定时任务| 修复定时任务清理报错 `e.get is not a function`，使用可选链安全访问 Context 方法
+
+### Improvements
+
+- style: |AI 提取| 暗色模式下 AI 提取信息使用更柔和的蓝色 (#A8C7FA)，减少视觉疲劳
+
+## v1.2.0
+
+### Breaking Changes
+
+- |数据库| 新增 `source_meta` 字段，需执行 `db/2025-12-27-source-meta.sql` 更新数据库或到 admin 维护页面点击数据库更新按钮
+
+### Features
+
+- feat: |Admin| 新增管理员账号页面，显示当前登录方式并支持退出登录（仅限密码登录方式）
+- fix: |GitHub Actions| 修复容器镜像名需要全部小写的问题
+- feat: |邮件转发| 新增来源地址正则转发功能，支持按发件人地址过滤转发，完全向后兼容
+- feat: |地址来源| 新增地址来源追踪功能，记录地址创建来源（Web 记录 IP，Telegram 记录用户 ID，Admin 后台标记）
+- feat: |邮件过滤| 移除后端 keyword 参数，改为前端过滤当前页邮件，优化查询性能
+- feat: |前端| 地址切换统一为下拉组件，极简模式支持切换，主页提供地址管理入口
+- feat: |数据库| 为 `message_id` 字段添加索引，优化邮件更新操作性能，需执行 `db/2025-12-15-message-id-index.sql` 更新数据库
+- feat: |Admin| 维护页面增加自定义 SQL 清理功能，支持定时任务执行自定义清理语句
+- feat: |国际化| 后端 API 错误消息全面支持中英文国际化
+- feat: |Telegram| 机器人支持中英文切换，新增 `/lang` 命令设置语言偏好
+
+## v1.1.0
+
+- feat: |AI 提取| 增加 AI 邮件识别功能，使用 Cloudflare Workers AI 自动提取邮件中的验证码、认证链接、服务链接等重要信息
+  - 支持优先级提取：验证码 > 认证链接 > 服务链接 > 订阅链接 > 其他链接
+  - 管理员可配置地址白名单（支持通配符，如 `*@example.com`）
+  - 前端列表和详情页展示提取结果
+  - 需要配置 `ENABLE_AI_EMAIL_EXTRACT` 环境变量和 AI 绑定
+  - 需要执行 `db/2025-12-06-metadata.sql` 文件中的 SQL 更新 `D1` 数据库 或者到 admin维护页面点击数据库更新按钮
+- feat: |Admin| 维护页面增加清理 n 天前空邮件的邮箱地址功能
+- fix: 修复自定义认证密码功能异常的问题 (前端属性名错误 & /open_api 接口被拦截)
+
+## v1.0.7
+
+- feat: |Admin| 新增 IP 黑名单功能，用于限制访问频率较高的 API
+- feat: |Admin| 新增 ASN 组织黑名单功能，支持基于 ASN 组织名称过滤请求（支持文本匹配和正则表达式）
+- feat: |Admin| 新增浏览器指纹黑名单功能，支持基于浏览器指纹过滤请求（支持精确匹配和正则表达式）
+
+## v1.0.6
 
 - feat: |DB| update db schema add index
+- feat: |地址密码| 增加地址密码登录功能, 通过 `ENABLE_ADDRESS_PASSWORD` 配置启用, 需要执行 `db/2025-09-23-patch.sql` 文件中的 SQL 更新 `D1` 数据库
+- fix: |GitHub Actions| 修复 debug 模式配置，仅当 DEBUG_MODE 为 'true' 时才启用调试模式
+- feat: |Admin| 账户管理页面新增多选批量操作功能（批量删除、批量清空收件箱、批量清空发件箱）
+- feat: |Admin| 维护页面增加清理未绑定用户地址的功能
+- feat: 支持针对角色配置不同的绑定地址数量上限, 可在 admin 页面配置
 
 ## v1.0.5
 
